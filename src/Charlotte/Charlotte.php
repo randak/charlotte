@@ -35,7 +35,6 @@ class Charlotte
 	private $links;
 	private $traversed;
 	private $processor;
-	public $onlyCLI;
 
 	public function __construct($start = "", $processor = "")
 	{
@@ -59,7 +58,7 @@ class Charlotte
 
 	public function traverse()
 	{
-		if(php_sapi_name() === "cli" || $this->onlyCLI) {
+		if(php_sapi_name() === "cli") {
 			$start = microtime(true);
 			while(!empty($this->links)) {
 				$url = array_pop($this->links);
