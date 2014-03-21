@@ -3,7 +3,7 @@
  * The main class for Charlotte, a web crawler that processes a website's links, scripts,
  * stylesheets, and more and stores them in a database. 
  * 
- * @category Charlotte
+ * @category Randak
  * @package Charlotte
  * @author Kristian Randall <kristian.l.randall@gmail.com>
  * @copyright 2014
@@ -21,7 +21,7 @@ use Charlotte\Processor\Processor;
 /**
  * Charlotte crawls the web so you don't have to.
  *
- * @category Charlotte
+ * @category Randak
  * @package Charlotte
  * @author Kristian Randall <kristian.l.randall@gmail.com>
  * @copyright 2014

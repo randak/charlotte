@@ -6,6 +6,12 @@ Copyright 2014
 PHP-based web crawler for site analysis. Crawls your website and stores information about your 
 pages, scripts and stylesheets in a graph database. (Can be extended to use any database.)
 
+Installation
+------------
+Install using Composer:
+
+> composer require randak/charlotte:dev-master
+
 
 Usage
 ------
