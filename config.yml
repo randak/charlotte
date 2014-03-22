@@ -1,0 +1,22 @@
+crawler:
+    start: http://www.example.com
+    exclude:
+        - "/^javascript\:void\(0\)$/"
+        - "/^#.*/"
+        - "/^\\/$/"
+        - "/\.(pdf|zip|zi|png|jpg|jpeg|doc|ppt)$/i"
+connections:
+    Neo4j:
+        host: localhost
+        port: 7474
+# data:
+#    collect:
+#        - URL
+#        - Title
+#        - Links
+#        - MetaTags:
+#            - description
+#            - keywords
+#        - H1s
+#        - Scripts
+#        - Stylesheets

@@ -2,8 +2,9 @@
     "name": "randak/charlotte",
     "description": "Charlotte crawls through your website and captures data in a database, including links between pages, H1 elements, scripts, stylesheets, and keywords.",
     "require": {
-        "everyman/neo4jphp": "dev-master",
-        "fabpot/goutte": "*"
+        "everyman/neo4jphp": "*",
+        "fabpot/goutte": "*",
+        "symfony/yaml": "2.*"
     },
     "license": "GPL-3.0",
     "authors": [
