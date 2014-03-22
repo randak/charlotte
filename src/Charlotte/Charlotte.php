@@ -149,12 +149,10 @@ class Charlotte
     protected function getTitle($crawler, $url)
     {
         try {
-            $title = trim($crawler->filterXPath("html/head/title")->text());
+            return trim($crawler->filterXPath("html/head/title")->text());
         } catch (\InvalidArgumentException $e) {
             return "";
         }
-
-        return $title;
     }
 
     protected function getMetaTags($crawler, $url)

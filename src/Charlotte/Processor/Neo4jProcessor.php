@@ -19,7 +19,8 @@ class Neo4jProcessor extends Processor
     protected function urlQuery($url, $title)
     {
         $str = "MERGE (n:Page {url: {url} })
-                SET n.title = {title}";
+                ON MATCH SET n.title = {title}
+                ON CREATE SET n.title = {title}";
                 // ON CREATE SET n.updateTime=timestamp(), n.createTime=timestamp(), n.title={title}
                 // ON MATCH SET n.title={title}';
 
