@@ -5,12 +5,18 @@ require('vendor/autoload.php');
 use Everyman\Neo4j\Client;
 use Charlotte\Charlotte;
 use Charlotte\Processor\Neo4jProcessor;
+use Symfony\Component\Yaml\Parser;
 
-$client = new Client("localhost", 7474);
+$yaml = new Parser();
+$config = $yaml->parse(file_get_contents(__DIR__."/config.yml"));
+
+$conn = $config["connections"]["Neo4j"];
+
+$client = new Client($conn["host"], $conn["port"]);
 
 $charlotte = new Charlotte();
 
-$charlotte->setStart("http://www.example.com");
+$charlotte->setConfig($config);
 $charlotte->setProcessor(new Neo4jProcessor($client));
 
 $charlotte->traverse();
