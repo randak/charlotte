@@ -31,27 +31,30 @@ use Charlotte\Processor\Processor;
  */
 class Charlotte
 {
-    private $start;
-    private $links;
-    private $traversed;
+    protected $start;
+    protected $links;
+    protected $traversed;
+    
     private $processor;
     private $config;
 
     public function __construct($config = "", $processor="")
     {
+        $this->bases = array();
         if(!empty($config)) $this->setConfig($config);
         if(!empty($processor)) $this->setProcessor($processor);
     }
 
-    public function setConfig($config) {
+    public function setConfig($config)
+    {
         $this->config = $config;
         $this->setStart($this->config["crawler"]["start"]);
     }
 
     public function setStart($start)
     {
-        $this->start = $start;
-        $this->links = array($start);
+        $this->start = (is_array($start)) ? $start : array($start);
+        $this->links = $this->start;
         $this->traversed = array();
     }
 
@@ -66,10 +69,7 @@ class Charlotte
             $start = microtime(true);
             while(!empty($this->links)) {
                 $url = array_pop($this->links);
-                if(!in_array($url, $this->traversed)) {
-                    array_push($this->traversed, $url);
-                    $this->processPage($url);
-                }
+                $this->processPage($url);
             }
             $end = microtime(true);
 
@@ -81,69 +81,57 @@ class Charlotte
 
     protected function traversable($url)
     {
-        if(empty($url)) {
-            return false;
-        }
+        if(empty($url)) return false;
 
         foreach($this->config["crawler"]["exclude"] as $pattern) {
             if(preg_match($pattern, $url)) return false;
         }
 
-        return true;
-    }
-
-    protected function cleanURL($url)
-    {
-        $url = trim($url);
-
-        if(substr($url, 0, 2) === "//") {
-            $url = "http:".$url;
-        } elseif(substr($url, 0, 1) === "/") {
-            $url = $this->start.$url;
-        }
-
-        return preg_replace(array("/#.*$/", "/\/#.*$/", "/\/$/"), "", $url);
-    }
-
-    protected function isURLExternal($url)
-    {
-        $base = str_replace(array("http://", "https://"), "", $this->start);
-        $base = str_replace("www.", "", $base);
-
-        return !preg_match("/^http(s)?\:\/\/(\w+\.){0,1}".$base."/", $url);
+        return !$this->isURLExternal($url);
     }
 
     protected function processPage($url)
     {
-        $start = microtime(true);
-
         try {
+            $start = microtime(true);
+
             $client = new Client();
             $crawler = $client->request("GET", $url);
 
-            $statusCode = $client->getResponse()->getStatus();
+            $url = $this->regulateURL($client->getRequest()->getUri());
 
-            if($statusCode == 200) { //VALID URL
-                $page = array();
+            if(!in_array($url, $this->traversed)) {
+                array_push($this->traversed, $url);
+                $statusCode = $client->getResponse()->getStatus();
 
-                $page["url"] = $url;
-                $page["title"] = $this->getTitle($crawler, $url);
-                $page["metas"] = $this->getMetaTags($crawler, $url);
-                $page["h1s"] = $this->getH1s($crawler, $url);
-                $page["scripts"] = $this->getScripts($crawler, $url);
-                $page["stylesheets"] = $this->getStylesheets($crawler, $url);
-                // $page["keywords"] = $this->getKeywords($crawler, $url);
-                $page["links"] = $this->getLinks($crawler, $url);
+                if($statusCode == 200) { //VALID URL
 
-                $this->processor->process($page);
+                        $page = array();
+
+                        $page["url"] = $url;
+                        $page["title"] = $this->getTitle($crawler, $url);
+                        $page["metas"] = $this->getMetaTags($crawler, $url);
+                        $page["h1s"] = $this->getH1s($crawler, $url);
+                        $page["scripts"] = $this->getScripts($crawler, $url);
+                        $page["stylesheets"] = $this->getStylesheets($crawler, $url);
+                        // $page["keywords"] = $this->getKeywords($crawler, $url);
+                        $page["links"] = $this->getLinks($crawler, $url);
+
+                        $this->processor->process($page);
+
+                        $end = microtime(true);
+
+                        echo "Page indexed at \033[33m".$url."\033[0m in \033[36m" . number_format(($end-$start), 2, ".", "") . " seconds\033[0m".
+                             " with response code \033[32m200\033[0m".PHP_EOL;
+                } else {
+                    echo "Page not indexed at \033[31m".$url."\033[0m due to status \033[31m".$statusCode."\033[0m".PHP_EOL;
+                }
+            } else {
+                // echo "Page ignored (already indexed) at \033[31m".$url."\033[0m".PHP_EOL;
             }
         } catch (\Guzzle\Http\Exception\CurlException $ex) {
         } catch (\Exception $ex) {
         }
-
-        $end = microtime(true);
-
-        echo "Page indexed at \033[35m".$url."\033[0m in \033[36m" . number_format(($end-$start), 2, ".", "") . " seconds \033[0m".PHP_EOL;
     }
 
     protected function getTitle($crawler, $url)
@@ -239,19 +227,65 @@ class Charlotte
         $links = array();
         $crawler->filter("a")->each(function(Crawler $node) use ($url, &$links) {
             if($node->attr("href")) {
-                $linkURL = $this->cleanURL($node->attr("href"));
+                $href = $this->regulateURL($node->attr("href"), $url);
 
-                if($this->traversable($linkURL) && !$this->isURLExternal($linkURL)) {
+                if($this->traversable($href)) {
                     array_push($links, array(
                             "text" => $node->text(),
-                            "href" => $linkURL
+                            "href" => $href
                         ));
-                    if(!in_array($linkURL, $this->traversed) && !in_array($linkURL, $this->links)) {
-                        array_push($this->links, $linkURL);
+                    if(!in_array($href, $this->traversed) && !in_array($href, $this->links)) {
+                        array_push($this->links, $href);
                     }
                 }
             }
         });
         return $links;
+    }
+
+    protected function regulateURL($url, $current = "")
+    {
+        $url = preg_replace(array("/#.*$/", "/\/#.*$/", "/\/$/"), "", $url);
+
+        if(!empty($current)) {
+            $protocol = $this->getProtocol($current);
+            $subdomain = $this->getSubdomain($current);
+            $base = $this->getBase($current);
+
+            if(preg_match("/^\/(?!\/)/", $url)) {
+                return $protocol.$subdomain.$base.$url;
+            } elseif(preg_match("/(?<=^\/\/).*/", $url, $matches)) {
+                return $protocol.$matches[0];
+            } //fall through
+        }
+
+        return $url;
+    }
+
+    protected function getProtocol($url) {
+        preg_match("/^((http(s)?\:)?\/\/)/", $url, $matches);
+        return (count($matches)) ? $matches[0] : "";
+    }
+
+    protected function getSubdomain($url) {
+        $url = preg_replace("/(http(s)?)\:?\/\//", "", $url);
+        preg_match("/^(((\w|\d|-)*)\.)*(?=taser\.com)/", $url, $matches);
+        return (count($matches)) ? $matches[0] : "";
+    }
+
+    protected function getBase($url)
+    {
+        $base = preg_replace("/^http(s)?:\/\/\w*\./", "", $url);
+        return preg_replace("/\/.*$/", "", $base);
+    }
+
+    protected function isURLExternal($url)
+    {
+        foreach($this->start as $start) {
+            if($this->getBase($url) == $this->getBase($start)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
