@@ -89,3 +89,9 @@ Run the script.
 Contributions
 -------------
 Contributions are welcome! If you'd like to contribute, please create an issue first.
+
+Disclaimer
+----------
+This crawler is intended to be used only on websites which are owned or operated by
+you. The developer(s) of this tool are not responsible for any use of this code that
+violates any laws or otherwise causes harm, and are not liable for any misuse.

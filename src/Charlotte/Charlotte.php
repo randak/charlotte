@@ -34,7 +34,7 @@ class Charlotte
     protected $start;
     protected $links;
     protected $traversed;
-    
+
     private $processor;
     private $config;
 
@@ -100,7 +100,14 @@ class Charlotte
 
             $url = $this->regulateURL($client->getRequest()->getUri());
 
-            if(!in_array($url, $this->traversed)) {
+            //don't crawl HTTPS version of HTTP page
+            $alt = '';
+            $prot = $this->getProtocol($url);
+            if($prot === "https://") {
+                $alt = preg_replace("/https:\/\//", "http://", $url);
+            }
+
+            if(!in_array($url, $this->traversed) && !in_array($alt, $this->traversed)) {
                 array_push($this->traversed, $url);
                 $statusCode = $client->getResponse()->getStatus();
 
@@ -269,8 +276,13 @@ class Charlotte
 
     protected function getSubdomain($url) {
         $url = preg_replace("/(http(s)?)\:?\/\//", "", $url);
-        preg_match("/^(((\w|\d|-)*)\.)*(?=taser\.com)/", $url, $matches);
-        return (count($matches)) ? $matches[0] : "";
+        foreach($this->start as $start) {
+            $esc = preg_quote($this->getBase($start));
+            $pattern = "/^(((\w|\d|-)*)\.)*(?=".$esc.")/";
+            preg_match($pattern, $url, $matches);
+            if(count($matches)) return $matches[0];
+        }
+        return "";
     }
 
     protected function getBase($url)
